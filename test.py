@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 import pytest
 from dataclasses import dataclass
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, TimeoutExpired
 
 
 base_dir = Path('./binary_search')
@@ -17,10 +17,14 @@ def test_prepared(test_file):
         ['python3', base_dir.joinpath('main.py')],
         stdin=PIPE, stdout=PIPE, stderr=PIPE,
     )
-    output, errors = p.communicate(
-        input='\n'.join(input).encode(),
-        timeout=5,
-    )
+    try:
+        output, error = p.communicate(
+            input='\n'.join(input).encode(),
+            timeout=5,
+        )
+    except TimeoutExpired:
+        p.kill()
+        output, error = p.communicate()
     output = output.decode()
     output = list(filter(len, output.split('\n')))
     assert output == expected_output
